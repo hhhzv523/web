@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網站管理後台 - hhhzv523</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Microsoft JhengHei, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .box { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2, h3 { color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; font-size: 14px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; margin-bottom: 10px; }
+        input:focus { border-color: #1a73e8; outline: none; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+        .v-item { display: flex; gap: 8px; margin-bottom: 10px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; }
+        button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        .btn-login { width: 100%; padding: 15px; background: #202124; color: white; font-size: 16px; }
+        .btn-save { width: 100%; padding: 18px; background: #1a73e8; color: white; font-size: 18px; margin-top: 20px; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+        .btn-add { background: #34a853; color: white; padding: 10px 20px; margin-top: 5px; }
+        .btn-del { background: #ea4335; color: white; width: 45px; flex-shrink: 0; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        #editor { display: none; }
+        #preview-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; display: none; border: 2px solid #eee; margin-top: 10px; }
+        #msg { text-align: center; font-weight: bold; margin-top: 15px; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="box" id="login">
+        <h2>身分驗證</h2>
+        <p>此頁面受加密保護，請輸入管理密碼以繼續。</p>
+        <input type="password" id="pw" placeholder="請輸入密碼">
+        <button class="btn-login" onclick="login()">解鎖編輯器</button>
+    </div>
+
+    <div class="box" id="editor">
+        <h2>網站編輯器</h2>
+        
+        <label>網站標題</label>
+        <input type="text" id="t">
+        
+        <label>主圖片上傳 (Base64)</label>
+        <input type="file" id="f" accept="image/*">
+        <img id="preview-img">
+        <input type="hidden" id="imgData">
+
+        <label>介紹內容</label>
+        <textarea id="c" rows="5"></textarea>
+
+        <label>按鈕設定 (文字 / 連結)</label>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="bt" placeholder="按鈕文字">
+            <input type="text" id="bl" placeholder="https://...">
+        </div>
+
+        <label>影片清單 (YouTube & TikTok)</label>
+        <div id="v-list"></div>
+        <button class="btn-add" onclick="addV()">＋ 新增影片</button>
+
+        <button class="btn-save" onclick="save()">儲存並發佈</button>
+        <p id="msg"></p>
+    </div>
+
+    <script>
+        // --- 已填入變數區 ---
+        const secret = "U2FsdGVkX19P/zHlCIn/p0fA7N1D3I0y8pIbeCjN8oB66T8wXvGgX5mI7J0X0gG2K/N3vN6X9J2X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0"; 
+        const USER = "hhhzv523"; 
+        const REPO = "web";
+        const FILE = "data.json";
+        let G_TOKEN = "";
+
+        function login() {
+            const pw = document.getElementById('pw').value;
+            try {
+                const bytes = CryptoJS.AES.decrypt(secret, pw);
+                const raw = bytes.toString(CryptoJS.enc.Utf8);
+                if (raw.startsWith("ghp_")) {
+                    G_TOKEN = raw;
+                    document.getElementById('login').style.display='none';
+                    document.getElementById('editor').style.display='block';
+                    loadData();
+                } else { alert("密碼錯誤"); }
+            } catch(e) { alert("驗證失敗"); }
+        }
+
+        document.getElementById('f').onchange = function(e) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                document.getElementById('imgData').value = reader.result;
+                const p = document.getElementById('preview-img');
+                p.src = reader.result; p.style.display = 'block';
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        function addV(val = "") {
+            const div = document.createElement('div');
+            div.className = "v-item";
+            div.innerHTML = `<input type="text" class="v-url" value="${val}" placeholder="網址..."><button class="btn-del" onclick="this.parentElement.remove()">✕</button>`;
+            document.getElementById('v-list').appendChild(div);
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(`./${FILE}?t=${Date.now()}`);
+                const d = await res.json();
+                document.getElementById('t').value = d.title || "";
+                document.getElementById('c').value = d.content || "";
+                document.getElementById('imgData').value = d.img || "";
+                document.getElementById('bt').value = d.btnText || "";
+                document.getElementById('bl').value = d.btnLink || "";
+                if(d.img) { document.getElementById('preview-img').src = d.img; document.getElementById('preview-img').style.display = 'block'; }
+                document.getElementById('v-list').innerHTML = "";
+                (d.videoList || []).forEach(url => addV(url));
+            } catch (e) { console.log("Init..."); }
+        }
+
+        async function save() {
+            const msg = document.getElementById('msg');
+            msg.innerText = "⏳ 發佈中...";
+            try {
+                const fRes = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${FILE}`);
+                const fData = await fRes.json();
+                const payload = {
+                    title: document.getElementById('t').value,
+                    content: document.getElementById('c').value,
+                    img: document.getElementById('imgData').value,
+                    btnText: document.getElementById('bt').value,
+                    btnLink: document.getElementById('bl').value,
+                    videoList: Array.from(document.querySelectorAll('.v-url')).map(i => i.value).filter(v => v !== "")
+                };
+                const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${FILE}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${G_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: "update",
+                        content: btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2)))),
+                        sha: fData.sha
+                    })
+                });
+                msg.innerText = res.ok ? "✅ 成功發佈！" : "❌ 失敗，請檢查權限";
+            } catch (err) { msg.innerText = "❌ 錯誤發生"; }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的作品集網站</title>
+    <style>
+        body { font-family: 'PingFang TC', sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #333; }
+        .container { max-width: 800px; margin: 40px auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+        img#main-img { max-width: 100%; border-radius: 12px; margin: 20px 0; display: none; }
+        .btn { display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; margin: 20px 0; transition: 0.3s; }
+        .btn:hover { background: #0056b3; transform: scale(1.05); }
+        .video-container { margin-top: 30px; }
+        iframe { width: 100%; border-radius: 12px; border: none; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="site-title">載入中...</h1>
+        <img id="main-img" src="">
+        <p id="site-content" style="white-space: pre-wrap; line-height: 1.6;"></p>
+        <a id="site-btn" class="btn" target="_blank" style="display: none;"></a>
+
+        <div id="video-list" class="video-container"></div>
+    </div>
+
+    <script>
+        async function loadSite() {
+            const res = await fetch('./data.json?t=' + Date.now());
+            const d = await res.json();
+            
+            document.title = d.title;
+            document.getElementById('site-title').innerText = d.title;
+            document.getElementById('site-content').innerText = d.content;
+
+            if (d.img) {
+                const img = document.getElementById('main-img');
+                img.src = d.img;
+                img.style.display = 'block';
+            }
+
+            if (d.btnLink && d.btnText) {
+                const btn = document.getElementById('site-btn');
+                btn.href = d.btnLink;
+                btn.innerText = d.btnText;
+                btn.style.display = 'inline-block';
+            }
+
+            const videoBox = document.getElementById('video-list');
+            videoBox.innerHTML = "";
+            (d.videoList || []).forEach(url => {
+                let html = "";
+                if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                    const vId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
+                    html = `<iframe height="400" src="https://www.youtube.com/embed/${vId}" allowfullscreen></iframe>`;
+                } else if (url.includes('tiktok.com')) {
+                    const vId = url.split('/video/')[1]?.split('?')[0];
+                    html = `<iframe src="https://www.tiktok.com/embed/v2/${vId}" style="height: 600px;" allowfullscreen></iframe>`;
+                }
+                if(html) videoBox.innerHTML += html;
+            });
+        }
+        loadSite();
+    </script>
+</body>
+</html>

@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>網站管理後台 - hhhzv523</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; color: #333; line-height: 1.5; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
         .box { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
         button { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; padding: 12px; transition: 0.2s; }
@@ -14,28 +13,18 @@
         .btn-blue { background: #1a73e8; color: white; width: 100%; font-size: 16px; margin-top: 15px; }
         .btn-add { background: #34a853; color: white; padding: 8px 15px; }
         .btn-del { background: #ea4335; color: white; width: 40px; margin-left: 5px; }
-        #editor, #tool-section { display: none; }
+        #editor { display: none; }
         .v-item { display: flex; margin-bottom: 8px; background: #f8f9fa; padding: 8px; border-radius: 6px; }
         #msg { text-align: center; font-weight: bold; margin-top: 10px; }
+        label { display: block; margin-top: 10px; font-size: 14px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="box" id="login">
         <h2>身分驗證</h2>
-        <input type="password" id="pw" placeholder="輸入密碼 Ai20150325">
-        <button class="btn-black" onclick="login()">解鎖</button>
-        <p style="font-size: 12px; color: #999; margin-top: 20px; cursor: pointer;" onclick="document.getElementById('tool-section').style.display='block'">⚠️ 密碼失效？點此重新生成加密字串</p>
-    </div>
-
-    <div class="box" id="tool-section" style="margin-top: 20px; border: 2px dashed #ccc;">
-        <h3>加密工具</h3>
-        <p style="font-size: 13px;">1. 在下方貼上你的 GitHub Token (ghp_...)</p>
-        <input type="text" id="newToken" placeholder="貼上你的 Token">
-        <p style="font-size: 13px;">2. 確認密碼為 Ai20150325</p>
-        <button class="btn-black" onclick="generateSecret()">點我生成 Secret 字串</button>
-        <textarea id="outputSecret" style="margin-top:10px; font-size:10px;" rows="3" readonly></textarea>
-        <p style="font-size: 12px; color: red;">生成後，請複製這段文字，回到程式碼中替換 secret 變數，然後儲存上傳至 GitHub。</p>
+        <input type="password" id="pw" placeholder="輸入管理密碼">
+        <button class="btn-black" onclick="login()">登入</button>
     </div>
 
     <div class="box" id="editor">
@@ -45,48 +34,34 @@
         <label>介紹內容</label><textarea id="c" rows="4"></textarea>
         <label>按鈕文字</label><input type="text" id="bt">
         <label>按鈕連結</label><input type="text" id="bl">
-        <label>影片清單</label>
+        <label>影片清單 (YouTube/TikTok)</label>
         <div id="v-list"></div>
         <button class="btn-add" onclick="addV()">＋ 新增影片</button>
-        <button class="btn-blue" onclick="save()">儲存並更新網站</button>
+        <button class="btn-blue" onclick="save()">儲存並發佈</button>
         <p id="msg"></p>
     </div>
 
     <script>
-        // --- 核心變數設定 ---
+        // --- 設定區 ---
         const USER = "hhhzv523"; 
         const REPO = "web";
         const FILE = "data.json";
+        const MY_PASSWORD = "Ai20150325"; // 你設定的登入密碼
+        const MY_TOKEN = "你的GitHub_PAT_Token直接貼在這裡"; // 請將 ghp_... 完整貼上
 
-        // !!! 重要：如果你剛生成了新字串，請貼在下方引號內 !!!
-        const secret = "U2FsdGVkX19P/zHlCIn/p0fA7N1D3I0y8pIbeCjN8oB66T8wXvGgX5mI7J0X0gG2K/N3vN6X9J2X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0X1X2X3X4X5X6X7X8X9X0"; 
-
-        // 登入邏輯
+        // 登入邏輯 (純比對)
         function login() {
-            const pw = document.getElementById('pw').value.trim();
-            try {
-                const bytes = CryptoJS.AES.decrypt(secret, pw);
-                const raw = bytes.toString(CryptoJS.enc.Utf8);
-                if (raw && raw.startsWith("ghp_")) {
-                    window.G_TOKEN = raw;
-                    document.getElementById('login').style.display='none';
-                    document.getElementById('tool-section').style.display='none';
-                    document.getElementById('editor').style.display='block';
-                    loadData();
-                } else { alert("密碼錯誤，請確認 A 是否大寫或重新生成加密字串。"); }
-            } catch(e) { alert("驗證失敗。"); }
+            const inputPw = document.getElementById('pw').value;
+            if (inputPw === MY_PASSWORD) {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('editor').style.display = 'block';
+                loadData();
+            } else {
+                alert("密碼錯誤！");
+            }
         }
 
-        // 加密工具邏輯
-        function generateSecret() {
-            const token = document.getElementById('newToken').value.trim();
-            if (!token.startsWith("ghp_")) { alert("請輸入正確的 GitHub Token (以 ghp_ 開頭)"); return; }
-            const encrypted = CryptoJS.AES.encrypt(token, "Ai20150325").toString();
-            document.getElementById('outputSecret').value = encrypted;
-            alert("生成成功！請複製下方文字框內容。");
-        }
-
-        // --- 其他功能函數 (保持不變) ---
+        // 動態新增影片
         function addV(val = "") {
             const div = document.createElement('div');
             div.className = "v-item";
@@ -94,48 +69,68 @@
             document.getElementById('v-list').appendChild(div);
         }
 
+        // 圖片處理
         document.getElementById('f').onchange = (e) => {
             const r = new FileReader();
             r.onload = () => document.getElementById('imgData').value = r.result;
             r.readAsDataURL(e.target.files[0]);
         };
 
+        // 載入資料
         async function loadData() {
             try {
-                const d = await (await fetch(`./${FILE}?t=${Date.now()}`)).json();
+                const res = await fetch(`./${FILE}?t=${Date.now()}`);
+                const d = await res.json();
                 document.getElementById('t').value = d.title || "";
                 document.getElementById('c').value = d.content || "";
                 document.getElementById('imgData').value = d.img || "";
                 document.getElementById('bt').value = d.btnText || "";
                 document.getElementById('bl').value = d.btnLink || "";
                 (d.videoList || []).forEach(url => addV(url));
-            } catch(e) {}
+            } catch(e) { console.log("初始化資料..."); }
         }
 
+        // 儲存資料
         async function save() {
             const m = document.getElementById('msg');
-            m.innerText = "發佈中...";
+            m.style.color = "blue";
+            m.innerText = "⏳ 正在發佈到 GitHub...";
+            
             try {
-                const f = await (await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${FILE}`)).json();
+                // 取得現有檔案的 SHA
+                const fRes = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${FILE}`);
+                const fData = await fRes.json();
+
                 const payload = {
                     title: document.getElementById('t').value,
                     content: document.getElementById('c').value,
                     img: document.getElementById('imgData').value,
                     btnText: document.getElementById('bt').value,
                     btnLink: document.getElementById('bl').value,
-                    videoList: Array.from(document.querySelectorAll('.v-url')).map(i => i.value)
+                    videoList: Array.from(document.querySelectorAll('.v-url')).map(i => i.value).filter(v => v !== "")
                 };
+
                 const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${FILE}`, {
                     method: 'PUT',
-                    headers: { 'Authorization': `token ${window.G_TOKEN}` },
+                    headers: { 'Authorization': `token ${MY_TOKEN}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        message: "update",
+                        message: "web update",
                         content: btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2)))),
-                        sha: f.sha
+                        sha: fData.sha
                     })
                 });
-                m.innerText = res.ok ? "✅ 已更新！" : "❌ 失敗";
-            } catch(e) { m.innerText = "❌ 發生錯誤"; }
+
+                if (res.ok) {
+                    m.style.color = "green";
+                    m.innerText = "✅ 發佈成功！約 30 秒後生效。";
+                } else {
+                    m.style.color = "red";
+                    m.innerText = "❌ 失敗，請檢查 Token 是否正確。";
+                }
+            } catch(e) {
+                m.style.color = "red";
+                m.innerText = "❌ 發生錯誤，請稍後再試。";
+            }
         }
     </script>
 </body>
